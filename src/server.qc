@@ -1351,6 +1351,26 @@ void () clanring_put_client_in_server =
     self.finaldest_y = MOVETYPE_WALK;
     self.style       = self.style | CLANRING_CONNECTED;//placed here before assigning to a team
 
+if (!self.client) // woods -- map change
+    {
+        string myClient = infokey(self, "*ver");
+        if (myClient != "")
+        {
+            if (substring(myClient, 0, 5) == "QSS-M")
+                self.client = "QSS-M";
+            else if (substring(myClient, 0, 3) == "FTE")
+                self.client = "FTE";
+        }
+        else
+        {
+            myClient = infokey(self,"*client");
+            if (myClient != "")
+                self.client = "ezQuake";
+            else
+                self.client = "Quake";
+        }
+    }
+
     //utils_make_scheduled_event(clanring_bf_think, 0.1);
 
     if (mode_is_arena())

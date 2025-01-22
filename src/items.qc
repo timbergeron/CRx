@@ -179,6 +179,46 @@ void() StartItem =
 };
 
 /*
+============
+SendObserverItemTimer -- woods
+
+Sends item respawn timer information to observers using QSS-M or FTE clients.
+This allows observers to see visual indicators for item respawn timing.
+============
+*/
+void(entity item, string itemname, float timeleft) SendObserverItemTimer
+{
+    // Loop through all clients with player classname
+    entity player;
+    player = find(world, classname, "player");
+    while(player)
+    {
+        if ((player.style & CLANRING_OBSERVER) &&
+            ((player.client == "QSS-M") || (player.client == "FTE")))
+        {
+            // Format command string with item timer information:
+            // - timeleft: remaining time for item respawn
+            // - x/y coordinates: calculated as midpoint between item bounds
+            // - z coordinate: item's origin plus minimum z offset
+            // - radius: 32 units for item highlight circle
+            // - tint: FFFFFF (white color in hex)
+            // - itemname: name of the item
+            // - item entity number
+            string cmd = sprintf("//it %g %g %g %g 32 FFFFFF %s %d\n",
+                timeleft,
+                rint((item.absmin_x + item.absmax_x) * 0.5),
+                rint((item.absmin_y + item.absmax_y) * 0.5),
+                rint(item.origin_z + item.mins_z),
+                itemname,
+                num_for_edict(item));
+            
+            stuffcmd(player, cmd);
+        }
+        player = find(player, classname, "player");
+    }
+}
+
+/*
 =========================================================================
 
 HEALTH BOX
@@ -401,6 +441,8 @@ void() item_megahealth_rot =
 				{
 					self.owner.nextthink = time + 20;
 					self.owner.think = SUB_regen;
+
+					SendObserverItemTimer(self.owner, "mega", 20); // woods
 				}
 				remove(self);
 			}
@@ -415,6 +457,8 @@ void() item_megahealth_rot =
 	{
 		self.owner.nextthink = time + 20;
 		self.owner.think = SUB_regen;
+
+		SendObserverItemTimer(self.owner, "mega", 20); // woods
 	}
 
 	remove(self);
@@ -514,6 +558,13 @@ void() armor_touch =
 
 	if (other.classname != "player")
 		return;
+
+		if (self.classname == "item_armor1")
+			SendObserverItemTimer(self, "ga", 20);
+		else if (self.classname == "item_armor2")
+			SendObserverItemTimer(self, "ya", 20);
+		else if (self.classname == "item_armorInv")
+			SendObserverItemTimer(self, "ra", 20);
 
 	if (self.classname == "item_armor1")
 	{
@@ -737,6 +788,11 @@ void() weapon_touch =
 	// self = other;
 	// best = W_BestWeapon(); // Best weapon with ammo
 	// self = stemp;
+
+	if (self.weapon == IT_ROCKET_LAUNCHER) // woods
+        SendObserverItemTimer(self, "rl", 30);
+    else if (self.weapon == IT_LIGHTNING)
+        SendObserverItemTimer(self, "lg", 30);
 
     if (deathmatch > 1) // CLANRING_MOD '|| coop' removed, changed to > 1
 		leave = 1;
@@ -1652,6 +1708,15 @@ void() powerup_touch =
 		self.think = SUB_regen;
 	}
 
+	if (self.items & IT_QUAD) // woods
+        SendObserverItemTimer(self, "quad", 60);
+    else if (self.items & IT_INVULNERABILITY)
+        SendObserverItemTimer(self, "pent", 300);
+    else if (self.items & IT_INVISIBILITY)
+        SendObserverItemTimer(self, "ring", 300);
+    else if (self.items & IT_SUIT)
+        SendObserverItemTimer(self, "suit", 60);
+	
 // do the apropriate action	
 	if (self.items == IT_SUIT)
 	{
